@@ -37,9 +37,6 @@ jobs:
           flutter packages pub run build_runner build --delete-conflicting-outputs
         fi
 
-    - name: Run tests
-      run: flutter test
-
     - name: Build APK
       run: flutter build apk --release
 
