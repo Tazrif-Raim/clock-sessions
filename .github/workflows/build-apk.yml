@@ -11,7 +11,9 @@ jobs:
   build-apk:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
-    
+    permissions:
+      contents: write
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -40,26 +42,30 @@ jobs:
     - name: Build APK
       run: flutter build apk --release
 
+    - name: Rename APK for release
+      run: |
+        APK_NAME="clock-sessions-v${{ github.run_number }}.apk"
+        cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
+
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: release-apk-${{ github.run_number }}
-        path: build/app/outputs/flutter-apk/app-release.apk
+        name: clock-sessions-v${{ github.run_number }}
+        path: clock-sessions-v${{ github.run_number }}.apk
         retention-days: 30
 
-    - name: Create Release and Upload APK (on main/master push only)
+    - name: Create Release and Upload APK
       if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         TAG_NAME="v${{ github.run_number }}"
         RELEASE_NAME="Release v${{ github.run_number }}"
-        
-        # Create release
-        gh release create "$TAG_NAME" \
+        APK_NAME="clock-sessions-v${{ github.run_number }}.apk"
+
+        gh release create "$TAG_NAME" "$APK_NAME" \
           --title "$RELEASE_NAME" \
           --notes "Automated release created from commit ${{ github.sha }}
 
         Changes in this release:
-        ${{ github.event.head_commit.message }}" \
-          build/app/outputs/flutter-apk/app-release.apk#clock-sessions-v${{ github.run_number }}.apk
+        ${{ github.event.head_commit.message }}"
